@@ -85,8 +85,7 @@ public class Scheduler {
         addToCorrectQueue(pcb);
     }
 
-    public PCB getRandomProcess() {
-        // Collect all processes from all queues and maps
+    public int getRandomProcess() {
         LinkedList<PCB> allProcesses = new LinkedList<>();
         allProcesses.addAll(realtimeQueue);
         allProcesses.addAll(interactiveQueue);
@@ -96,7 +95,7 @@ public class Scheduler {
             if (!allProcesses.contains(p)) allProcesses.add(p);
         }
         if (currentlyRunning != null && !allProcesses.contains(currentlyRunning)) {
-            allProcesses.remove(currentlyRunning);
+            allProcesses.add(currentlyRunning);
         }
 
         while (!allProcesses.isEmpty()) {
@@ -104,25 +103,21 @@ public class Scheduler {
             VirtualToPhysicalMapping[] pageTable = victim.getPageTable();
             for (int i = 0; i < pageTable.length; i++) {
                 if (pageTable[i] != null && pageTable[i].physicalPage != -1) {
-                    // Found a page with physical memory
-                    // Write to disk if not already there
                     if (pageTable[i].diskPage == -1) {
                         pageTable[i].diskPage = kernel.getNextDiskPage();
-                        // Seek and write the page to swap file
                         kernel.getVfs().Seek(kernel.getSwapFileId(), pageTable[i].diskPage * 1024);
                         byte[] data = new byte[1024];
                         System.arraycopy(Hardware.memory, pageTable[i].physicalPage * 1024, data, 0, 1024);
                         kernel.getVfs().Write(kernel.getSwapFileId(), data);
                     }
-                    // Free the physical page
                     int physPage = pageTable[i].physicalPage;
                     pageTable[i].physicalPage = -1;
-                    return victim; // Return the PCB, and the caller will assign the freed physPage
+                    return physPage;
                 }
             }
-            allProcesses.remove(victim); // No physical pages, try another process
+            allProcesses.remove(victim);
         }
-        return null;
+        return -1;
     }
 
     /**
