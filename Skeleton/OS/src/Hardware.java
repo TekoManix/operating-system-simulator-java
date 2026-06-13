@@ -1,4 +1,5 @@
 import java.util.Arrays;
+import java.util.Random;
 
 public class Hardware {
     private static final int PAGE_SIZE = 1024;  // 1KB pages
@@ -9,6 +10,7 @@ public class Hardware {
 
     // TLB 2 entries, each is [virtualPage, physicalPage], -1 means empty.
     private static int[][] tlb = new int[2][2];
+    private static final Random rng = new Random();
 
     static {
         clearTLB();
@@ -90,7 +92,7 @@ public class Hardware {
      * mapping into a random TLB slot.
      */
     public static void setTLBEntry(int virtualPage, int physicalPage) {
-        int slot = new java.util.Random().nextInt(2);
+        int slot = rng.nextInt(2);
         tlb[slot][0] = virtualPage;
         tlb[slot][1] = physicalPage;
 
