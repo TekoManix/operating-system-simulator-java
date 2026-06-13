@@ -134,6 +134,7 @@ public class Scheduler {
      * The process is moved to the sleeping list and a new process is selected.
      */
     public void sleep(int milliseconds) {
+        Hardware.clearTLB();
         if (currentlyRunning != null) {
             // Set the wake-up time: current time + requested sleep duration
             currentlyRunning.setWakeUpTime(clock.millis() + milliseconds);
@@ -149,6 +150,7 @@ public class Scheduler {
     }
 
     public void exit() {
+        Hardware.clearTLB();
         if (currentlyRunning != null) {
             // Free all memory pages owned by this process
             if (kernel != null) {
@@ -313,7 +315,9 @@ public class Scheduler {
         }
         // If there's already a message queued, return it right away
         if (!currentlyRunning.getMessageQueue().isEmpty()) {
-            return currentlyRunning.getMessageQueue().removeFirst();
+            KernelMessage msg = currentlyRunning.getMessageQueue().removeFirst();
+            currentlyRunning.retVal = msg;
+            return msg;
         }
         // Message not available - de-schedule and wait
         waitingForMessage.put(currentlyRunning.pid, currentlyRunning);
