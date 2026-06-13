@@ -3,7 +3,7 @@ import java.util.Arrays;
 public class Kernel extends Process  {
     private Scheduler scheduler;  // The scheduler manages all processes
     private VFS vfs;              // Virtual file system for device management
-    private static boolean[] freeList = new boolean[1024]; // false = free, true = in use
+    private boolean[] freeList = new boolean[1024]; // false = free, true = in use
     private int swapFileId; // VFS 10 for the swap file
     private int nextDiskPage = 0; // Tracks the next available disk page number
 
@@ -292,10 +292,12 @@ public class Kernel extends Process  {
         if (startPage + pageCount > pageTable.length) return false;
 
         for (int i = 0; i < pageCount; i++) {
-            int physPage = pageTable[startPage + i].physicalPage;
-            if (physPage != -1) {
-                freeList[physPage] = false;          // Free the physical page
-                pageTable[startPage + i].physicalPage = -1;       // Remove the mapping
+            VirtualToPhysicalMapping m = pageTable[startPage + i];
+            if (m != null) {
+                if (m.physicalPage != -1) {
+                    freeList[m.physicalPage] = false;
+                }
+                pageTable[startPage + i] = null;
             }
         }
         return true;
@@ -328,7 +330,7 @@ public class Kernel extends Process  {
     }
 
     private int GetPidByName(String name) {
-        return scheduler.getPidByName(name); // change this
+        return scheduler.getPidByName(name);
     }
 
 }
