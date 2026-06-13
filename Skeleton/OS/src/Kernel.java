@@ -208,31 +208,12 @@ public class Kernel extends Process  {
             // Page fault: need to allocate physical memory
             int physPage = findFreePhysicalPage();
             if (physPage == -1) {
-                // No free physical pages — swap out a page from another process
-                PCB victim = scheduler.getRandomProcess();
-                if (victim == null) {
-                    // No victim found (shouldn't happen) — kill process
+                // No free physical pages — evict a page from another process
+                physPage = scheduler.getRandomProcess();
+                if (physPage == -1) {
                     System.out.println("seg fault (no physical memory available) — killing PID " + current.pid);
                     scheduler.exit();
                     return;
-                }
-                // Find a page in victim with physical memory
-                VirtualToPhysicalMapping[] victimPageTable = victim.getPageTable();
-                for (VirtualToPhysicalMapping virtualToPhysicalMapping : victimPageTable) {
-                    if (virtualToPhysicalMapping != null && virtualToPhysicalMapping.physicalPage != -1) {
-                        // Write victim's page to disk if not already there
-                        if (virtualToPhysicalMapping.diskPage == -1) {
-                            virtualToPhysicalMapping.diskPage = getNextDiskPage();
-                            vfs.Seek(getSwapFileId(), virtualToPhysicalMapping.diskPage * 1024);
-                            byte[] data = new byte[1024];
-                            System.arraycopy(Hardware.memory, virtualToPhysicalMapping.physicalPage * 1024, data, 0, 1024);
-                            vfs.Write(getSwapFileId(), data);
-                        }
-                        // Free victim's physical page
-                        physPage = virtualToPhysicalMapping.physicalPage;
-                        virtualToPhysicalMapping.physicalPage = -1;
-                        break;
-                    }
                 }
             }
 
